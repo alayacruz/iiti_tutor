@@ -1,9 +1,8 @@
-
-
 import React, { useState, useEffect, useRef } from 'react';
 import Message from './Message';
 import ChatInput from './ChatInput';
 import TypingIndicator from './TypingIndicator';
+import { sendMessage, downloadPdf } from './sendMessage.tsx'; // Adjust path as needed
 
 interface ChatMessage {
   id: string;
@@ -22,8 +21,8 @@ const Chat: React.FC<ChatProps> = ({ selectedFeature }) => {
       id: '1',
       message: "Welcome to NEXUS! I'm your AI tutor for the IITI community...",
       isBot: true,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    },
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -46,42 +45,53 @@ const Chat: React.FC<ChatProps> = ({ selectedFeature }) => {
         upload: "Upload your study materials or textbook pages...",
         tutor: "I'm your personal AI tutor!"
       };
-      handleSendMessage(prompts[selectedFeature] || '', true);
+      const introPrompt = prompts[selectedFeature] || '';
+      handleSendMessage(introPrompt);
     }
   }, [selectedFeature]);
 
-  const handleSendMessage = (message: string, isBot = false) => {
-    const newMessage: ChatMessage = {
+  const handleSendMessage = async (message: string, file?: File | null) => {
+    const userMessage: ChatMessage = {
       id: Date.now().toString(),
       message,
-      isBot,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      isBot: false,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
-    setMessages(prev => [...prev, newMessage]);
+    setMessages(prev => [...prev, userMessage]);
 
-    if (!isBot) {
-      setIsLoading(true);
-      setTimeout(() => {
-        const responses = [
-          "That's an excellent question...",
-          "Here's how we can approach this...",
-          "Based on IITI curriculum...",
-        ];
-        setMessages(prev => [...prev, {
-          ...newMessage,
-          id: (Date.now() + 1).toString(),
-          message: responses[Math.floor(Math.random() * responses.length)],
-          isBot: true
-        }]);
-        setIsLoading(false);
-      }, 1500);
+    setIsLoading(true);
+
+    try {
+      const res = await sendMessage(message, file || undefined);
+
+      const botMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        message: res.text || "Sorry, I couldn't understand that.",
+        isBot: true,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+
+      setMessages(prev => [...prev, botMessage]);
+
+      if (res.file) {
+        downloadPdf(res.file);
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 2).toString(),
+        message: 'Oops! Something went wrong. Please try again.',
+        isBot: true,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      }]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
+    <div className="flex flex-col flex-1 overflow-hidden bg-white/70 dark:bg-black transition-colors duration-100">
       <div className="flex-1 overflow-y-auto p-6 pt-[81px] space-y-4 scroll-smooth">
-
         {messages.map((msg) => (
           <div key={msg.id} className="max-w-4xl mx-auto">
             <Message message={msg.message} isBot={msg.isBot} timestamp={msg.timestamp} />
@@ -91,8 +101,8 @@ const Chat: React.FC<ChatProps> = ({ selectedFeature }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="w-full border-t border-gray-700 bg-black px-4 py-2">
-        <div className="max-w-4xl mx-auto">
+      <div className="w-full border-t bg-white/40 dark:bg-black/80 border-gray-300 dark:border-cyan-500/30 backdrop-blur-md">
+        <div className="max-w-4xl mx-auto px-4 py-2">
           <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
         </div>
       </div>
@@ -101,6 +111,9 @@ const Chat: React.FC<ChatProps> = ({ selectedFeature }) => {
 };
 
 export default Chat;
+
+
+
 
 
 

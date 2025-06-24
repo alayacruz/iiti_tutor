@@ -15,7 +15,9 @@ function App() {
   };
 
   return (
-    <div className="h-screen w-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white flex flex-col overflow-hidden ">
+    <div className="h-screen w-screen flex flex-col overflow-hidden 
+       bg-white text-black dark:bg-[#0e0e0e] dark:text-white transition-colors duration-300">
+
       <Header />
 
       <div className="flex flex-1 overflow-hidden">
@@ -45,5 +47,4 @@ function App() {
   );
 }
 
-export default App;
-
+export default App ;
